@@ -6,7 +6,13 @@ import { useAtomValue } from 'jotai'
 import type { FormEvent } from 'react'
 import { useMemo } from 'react'
 
-export default function InputHandler({ updateInput }: { updateInput: (updateObj: WordUpdateAction) => void }) {
+export default function InputHandler({
+  updateInput,
+  viResetSignal,
+}: {
+  updateInput: (updateObj: WordUpdateAction) => void
+  viResetSignal?: number
+}) {
   const dictInfo = useAtomValue(currentDictInfoAtom)
 
   const handler = useMemo(() => {
@@ -20,11 +26,11 @@ export default function InputHandler({ updateInput }: { updateInput: (updateObj:
       case 'code':
         return <TextAreaHandler updateInput={updateInput} />
       case 'vi':
-        return <VietnameseKeyEventHandler updateInput={updateInput} />
+        return <VietnameseKeyEventHandler updateInput={updateInput} viResetSignal={viResetSignal} />
       default:
         return <TextAreaHandler updateInput={updateInput} />
     }
-  }, [dictInfo.language, updateInput])
+  }, [dictInfo.language, updateInput, viResetSignal])
 
   return <>{handler}</>
 }
