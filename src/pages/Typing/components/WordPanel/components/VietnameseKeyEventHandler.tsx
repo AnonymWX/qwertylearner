@@ -62,8 +62,10 @@ export default function VietnameseKeyEventHandler({
 
       if (e.key === ' ') {
         e.preventDefault()
-        rawBufferRef.current = ''
-        updateInput({ type: 'add', value: ' ', event: e })
+        rawBufferRef.current += ' '
+        const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
+        console.log('space: raw buffer:', rawBufferRef.current, 'converted:', converted)
+        updateInput({ type: 'replace', value: converted })
         return
       }
 
