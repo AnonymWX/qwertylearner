@@ -127,4 +127,13 @@ export const LANG_PRON_MAP: LanguagePronunciationMap = {
       },
     ],
   },
+  vi: {
+    defaultPronIndex: 0,
+    pronunciation: [
+      {
+        name: '越南语',
+        pron: 'vi',
+      },
+    ],
+  },
 }
