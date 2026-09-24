@@ -31,10 +31,21 @@ const TELEX_RULE = {
   },
 }
 
-export default function VietnameseKeyEventHandler({ updateInput }: { updateInput: (updateObj: WordUpdateAction) => void }) {
+export default function VietnameseKeyEventHandler({
+  updateInput,
+  viResetSignal,
+}: {
+  updateInput: (updateObj: WordUpdateAction) => void
+  viResetSignal?: number
+}) {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const { state } = useContext(TypingContext)!
   const rawBufferRef = useRef('')
+
+  // 输入错误重置时，清空原始按键缓冲区
+  useEffect(() => {
+    rawBufferRef.current = ''
+  }, [viResetSignal])
 
   const onKeydown = useCallback(
     (e: KeyboardEvent) => {
