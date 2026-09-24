@@ -21,7 +21,7 @@ export default function VietnameseKeyEventHandler({
       if (e.key === 'Backspace') {
         e.preventDefault()
         rawBufferRef.current = rawBufferRef.current.slice(0, -1)
-        const converted = rawBufferRef.current
+        const converted = processInputByMethod(rawBufferRef.current)
         console.log('backspace converted:', converted)
         updateInput({ type: 'replace', value: converted })
         return
@@ -38,7 +38,7 @@ export default function VietnameseKeyEventHandler({
 
       e.preventDefault()
       rawBufferRef.current += e.key
-      const converted = rawBufferRef.current
+      const converted = processInputByMethod(rawBufferRef.current)
       console.log('raw buffer:', rawBufferRef.current, 'converted:', converted)
       updateInput({ type: 'replace', value: converted })
     },
