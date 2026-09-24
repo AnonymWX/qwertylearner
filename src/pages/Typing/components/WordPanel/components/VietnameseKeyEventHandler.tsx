@@ -63,17 +63,16 @@ export default function VietnameseKeyEventHandler({
       if (e.key === ' ') {
         e.preventDefault()
         rawBufferRef.current = ''
-        updateInput({ type: 'replace', value: EXPLICIT_SPACE })
+        updateInput({ type: 'add', value: ' ', event: e })
         return
       }
 
       if (e.key.length !== 1) return
-
-      e.preventDefault()
-      rawBufferRef.current += e.key
-      const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-      updateInput({ type: 'replace', value: converted })
-    },
+        e.preventDefault()
+        rawBufferRef.current += e.key
+        const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
+        updateInput({ type: 'replace', value: converted })
+      },
     [state.isTyping, updateInput],
   )
 
