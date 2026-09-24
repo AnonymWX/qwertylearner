@@ -4099,7 +4099,19 @@ const indonesianDicts: DictionaryResource[] = [
     languageCategory: 'id',
   },
 ]
-
+// 越南语词典
+const vietnamExam: DictionaryResource[] = [
+  {
+    id: 'vietnamese-basic',
+    name: '越南语基础词汇',
+    description: '越南语基础词汇',
+    category: '越南语',
+    tags: ['越南语', '基础'],
+    url: '/dicts/vietnamese_basic.json',
+    length: 3,
+    language: 'vi',
+  },
+]
 /**
  * Built-in dictionaries in an array.
  * Why arrays? Because it keeps the order across browsers.
@@ -4113,25 +4125,7 @@ export const dictionaryResources: DictionaryResource[] = [
   ...germanExam,
   ...kazakhHapinDicts,
   ...indonesianDicts,
-
-  // {
-  //   id: 'zhtest',
-  //   name: '中文测试',
-  //   description: '中文测试词库',
-  //   category: '测试',
-  //   url: '/dicts/chinese_test.json',
-  //   length: 27,
-  //   language: 'zh',
-  // },
-  // {
-  //   id: 'jptest',
-  //   name: '日文测试',
-  //   description: '日文测试词库',
-  //   category: '测试',
-  //   url: '/dicts/japanese_test.json',
-  //   length: 20,
-  //   language: 'ja',
-  // },
+  ...vietnamExam,
 ]
 
 export const dictionaries: Dictionary[] = dictionaryResources.map((resource) => ({
