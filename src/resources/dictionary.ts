@@ -4102,7 +4102,7 @@ const indonesianDicts: DictionaryResource[] = [
 // 越南语词典
 const vietnamExam: DictionaryResource[] = [
   {
-    id: 'vietnamese-basic',
+    id: 'vietnamese_basic',
     name: '越南语基础词汇',
     description: '越南语基础词汇',
     category: '越南语',
