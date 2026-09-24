@@ -20,7 +20,7 @@ export default function InputHandler({ updateInput }: { updateInput: (updateObj:
       case 'code':
         return <TextAreaHandler updateInput={updateInput} />
       case 'vi':
-        return <VietnameseKeyEventHandler updateInput={updateInput} />
+        return <TextAreaHandler updateInput={updateInput} />
       default:
         return <TextAreaHandler updateInput={updateInput} />
     }
