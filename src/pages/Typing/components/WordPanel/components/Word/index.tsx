@@ -89,6 +89,13 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           }
           break
 
+        case 'replace':
+          if (wordState.hasWrong) return
+          setWordState((state) => {
+            state.inputWord = updateAction.value
+          })
+          break
+
         default:
           console.warn('unknown update type', updateAction)
       }
