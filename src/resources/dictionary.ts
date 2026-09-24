@@ -4109,7 +4109,7 @@ const vietnamExam: DictionaryResource[] = [
     tags: ['越南语', '基础'],
     url: '/dicts/vietnamese_basic.json',
     length: 3,
-    language: 'vi',
+    language: 'en',
   },
 ]
 /**
