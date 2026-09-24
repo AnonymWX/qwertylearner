@@ -50,6 +50,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   const currentChapter = useAtomValue(currentChapterAtom)
 
   const [showTipAlert, setShowTipAlert] = useState(false)
+  const [viResetSignal, setViResetSignal] = useState(0)
   const wordPronunciationIconRef = useRef<WordPronunciationIconRef>(null)
 
   useEffect(() => {
@@ -249,6 +250,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           state.letterStates = new Array(state.letterStates.length).fill('normal')
           state.hasWrong = false
         })
+        setViResetSignal((n) => n + 1)
       }, 300)
 
       return () => {
@@ -289,7 +291,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
   return (
     <>
-      <InputHandler updateInput={updateInput} />
+      <InputHandler updateInput={updateInput} viResetSignal={viResetSignal} />
       <div
         lang={currentLanguageCategory !== 'code' ? currentLanguageCategory : 'en'}
         className="flex flex-col items-center justify-center pb-1 pt-4"
