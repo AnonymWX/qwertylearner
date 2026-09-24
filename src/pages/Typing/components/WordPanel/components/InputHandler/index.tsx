@@ -1,14 +1,15 @@
 import KeyEventHandler from '../KeyEventHandler'
 import TextAreaHandler from '../TextAreaHandler'
+import VietnameseKeyEventHandler from '../VietnameseKeyEventHandler'
 import { currentDictInfoAtom } from '@/store'
 import { useAtomValue } from 'jotai'
 import type { FormEvent } from 'react'
-import {  useMemo } from 'react'
+import { useMemo } from 'react'
 
 export default function InputHandler({ updateInput }: { updateInput: (updateObj: WordUpdateAction) => void }) {
   const dictInfo = useAtomValue(currentDictInfoAtom)
 
-    const handler = useMemo(() => {
+  const handler = useMemo(() => {
     switch (dictInfo.language) {
       case 'en':
         return <KeyEventHandler updateInput={updateInput} />
@@ -19,7 +20,7 @@ export default function InputHandler({ updateInput }: { updateInput: (updateObj:
       case 'code':
         return <TextAreaHandler updateInput={updateInput} />
       case 'vi':
-        return <TextAreaHandler updateInput={updateInput} />
+        return <VietnameseKeyEventHandler updateInput={updateInput} />
       default:
         return <TextAreaHandler updateInput={updateInput} />
     }
@@ -28,7 +29,7 @@ export default function InputHandler({ updateInput }: { updateInput: (updateObj:
   return <>{handler}</>
 }
 
-export type WordUpdateAction = WordAddAction | WordDeleteAction | WordCompositionAction
+export type WordUpdateAction = WordAddAction | WordDeleteAction | WordCompositionAction | WordReplaceAction
 
 export type WordAddAction = {
   type: 'add'
@@ -44,5 +45,9 @@ export type WordDeleteAction = {
 // composition api is not ready yet
 export type WordCompositionAction = {
   type: 'composition'
+  value: string
+}
+export type WordReplaceAction = {
+  type: 'replace'
   value: string
 }
