@@ -2,6 +2,7 @@ import type { WordUpdateAction } from './InputHandler'
 import { TypingContext } from '@/pages/Typing/store'
 import { processInputByMethod } from 'gotiengviet'
 import { useCallback, useContext, useEffect, useRef } from 'react'
+import { EXPLICIT_SPACE } from '@/constants'
 
 const TELEX_RULE = {
   toneRules: {
@@ -51,7 +52,7 @@ export default function VietnameseKeyEventHandler({ updateInput }: { updateInput
       if (e.key === ' ') {
         e.preventDefault()
         rawBufferRef.current = ''
-        updateInput({ type: 'replace', value: '' })
+        updateInput({ type: 'replace', value: EXPLICIT_SPACE })
         return
       }
 
