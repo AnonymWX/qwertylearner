@@ -65,9 +65,11 @@ export default function VietnameseKeyEventHandler({
 
       if (e.key === ' ') {
         e.preventDefault()
-        rawBufferRef.current = ''
-        setDebugInfo(`space`)
-        updateInput({ type: 'add', value: ' ', event: e })
+        rawBufferRef.current += ' '
+        const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
+        const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
+        setDebugInfo(`space → ${normalized}`)
+        updateInput({ type: 'replace', value: normalized })
         return
       }
 
