@@ -58,7 +58,8 @@ export default function VietnameseKeyEventHandler({
         rawBufferRef.current = rawBufferRef.current.slice(0, -1)
         const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
         const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
-        setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized}`)
+        const lastChar = normalized[normalized.length - 1]
+        setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized} | last code: ${lastChar ? lastChar.charCodeAt(0) : 'none'}`)
         updateInput({ type: 'replace', value: normalized })
         return
       }
@@ -77,7 +78,8 @@ export default function VietnameseKeyEventHandler({
       rawBufferRef.current += e.key
       const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
       const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
-      setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized}`)
+      const lastChar = normalized[normalized.length - 1]
+      setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized} | last code: ${lastChar ? lastChar.charCodeAt(0) : 'none'}`)
       updateInput({ type: 'replace', value: normalized })
     },
     [state.isTyping, updateInput],
