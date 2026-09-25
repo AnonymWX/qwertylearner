@@ -31,8 +31,12 @@ import { useImmer } from 'use-immer'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
-// 去掉声调，只留基础字母
-const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC')
+// 只去掉声调符号（玄、锐、问、跌、重），保留变音字母（ă â ê ô ơ ư đ）
+const stripTone = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300\u0301\u0303\u0309\u0323]/g, '')
+    .normalize('NFC')
 
 export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
@@ -201,8 +205,8 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         isEqual = inputChar === correctChar
       }
 
-      // 基础字母相同、但声调不同 → 等待声调，不判错
-      if (!isEqual && normalize(inputChar) === normalize(correctChar)) {
+      // 基础字母（含变音）相同、只是声调不同 → 等待声调，不判错
+      if (!isEqual && stripTone(inputChar) === stripTone(correctChar)) {
         isPendingTone = true
       }
     }
