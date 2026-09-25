@@ -31,43 +31,6 @@ const TELEX_RULE = {
   },
 }
 
-// 变音字母 → 必须包含的触发序列
-const MARK_RULES: Record<string, string[]> = {
-  'ă': ['aw'],
-  'â': ['aa'],
-  'ê': ['ee'],
-  'ô': ['oo'],
-  'ơ': ['ow'],
-  'ư': ['uw'],
-  'đ': ['dd'],
-  'Ă': ['AW', 'aw'],
-  'Â': ['AA', 'aa'],
-  'Ê': ['EE', 'ee'],
-  'Ô': ['OO', 'oo'],
-  'Ơ': ['OW', 'ow'],
-  'Ư': ['UW', 'uw'],
-  'Đ': ['DD', 'dd'],
-}
-
-// 声调键
-const TONE_KEYS = ['s', 'f', 'r', 'x', 'j', 'z']
-
-// 校验：转换结果里的每个变音字母，原始输入里必须有对应的触发序列
-function validateMarkSequence(rawBuffer: string, converted: string): boolean {
-  const rawLower = rawBuffer.toLowerCase()
-
-  for (const [markChar, validTriggers] of Object.entries(MARK_RULES)) {
-    if (converted.includes(markChar)) {
-      const hasValidTrigger = validTriggers.some((trigger) => rawLower.includes(trigger.toLowerCase()))
-      if (!hasValidTrigger) {
-        return false
-      }
-    }
-  }
-
-  return true
-}
-
 export default function VietnameseKeyEventHandler({
   updateInput,
   viResetSignal,
@@ -116,14 +79,6 @@ export default function VietnameseKeyEventHandler({
       rawBufferRef.current += e.key
       const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
       const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
-
-      // 校验：变音字母必须由合法的按键序列触发
-      if (!validateMarkSequence(rawBufferRef.current, normalized)) {
-        setDebugInfo(`invalid mark: ${normalized}`)
-        updateInput({ type: 'replace', value: normalized })
-        return
-      }
-
       setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized}`)
       updateInput({ type: 'replace', value: normalized })
     },
