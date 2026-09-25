@@ -31,12 +31,15 @@ import { useImmer } from 'use-immer'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
-// 只去掉声调符号（玄、锐、问、跌、重），保留变音字母（ă â ê ô ơ ư đ）
-const stripTone = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[\u0300\u0301\u0303\u0309\u0323]/g, '')
-    .normalize('NFC')
+// 去掉所有组合符号（变音 + 声调），只留基础字母
+const getBase = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC')
+
+// 取出所有组合符号（变音 + 声调）
+const getMark = (s: string): string => {
+  const nfd = s.normalize('NFD')
+  const marks = nfd.match(/[\u0300-\u036f]/g)
+  return marks ? marks.join('') : ''
+}
 
 export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
@@ -196,7 +199,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     const correctChar = wordState.displayWord[inputLength - 1]
 
     let isEqual = false
-    let isPendingTone = false
+    let isPending = false
 
     if (inputChar != undefined && correctChar != undefined) {
       if (isIgnoreCase) {
@@ -205,14 +208,23 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         isEqual = inputChar === correctChar
       }
 
-      // 基础字母（含变音）相同、只是声调不同 → 等待声调，不判错
-      if (!isEqual && stripTone(inputChar) === stripTone(correctChar)) {
-        isPendingTone = true
+      if (!isEqual) {
+        const inputBase = getBase(inputChar)
+        const correctBase = getBase(correctChar)
+        const inputMark = getMark(inputChar)
+        const correctMark = getMark(correctChar)
+
+        if (inputBase === correctBase) {
+          if (inputMark === '' || correctMark === '') {
+            // 一方还没加符号 → 等待
+            isPending = true
+          }
+        }
       }
     }
 
-    // 等待声调时，直接返回，不更新 letterStates
-    if (isPendingTone) {
+    // 等待时，直接返回，不更新 letterStates
+    if (isPending) {
       return
     }
 
