@@ -31,6 +31,41 @@ const TELEX_RULE = {
   },
 }
 
+// 变音字母 → 必须包含的按键组合
+const MARK_RULES: Record<string, string[]> = {
+  'ă': ['aw'],
+  'â': ['aa'],
+  'ê': ['ee'],
+  'ô': ['oo'],
+  'ơ': ['ow'],
+  'ư': ['uw'],
+  'đ': ['dd'],
+  'Ă': ['aw', 'AW'],
+  'Â': ['aa', 'AA'],
+  'Ê': ['ee', 'EE'],
+  'Ô': ['oo', 'OO'],
+  'Ơ': ['ow', 'OW'],
+  'Ư': ['uw', 'UW'],
+  'Đ': ['dd', 'DD'],
+}
+
+// 校验：转换结果里的每个变音字母，原始输入里必须有对应的按键组合
+function validateMarkSequence(rawBuffer: string, converted: string): boolean {
+  const rawLower = rawBuffer.toLowerCase()
+  const convertedNfc = converted.normalize('NFC')
+
+  for (const [markChar, validTriggers] of Object.entries(MARK_RULES)) {
+    if (convertedNfc.includes(markChar)) {
+      const hasValidTrigger = validTriggers.some((trigger) => rawLower.includes(trigger.toLowerCase()))
+      if (!hasValidTrigger) {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
 export default function VietnameseKeyEventHandler({
   updateInput,
   viResetSignal,
@@ -79,6 +114,14 @@ export default function VietnameseKeyEventHandler({
       rawBufferRef.current += e.key
       const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
       const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
+
+      // 校验：变音字母必须由合法的按键组合触发
+      if (!validateMarkSequence(rawBufferRef.current, normalized)) {
+        setDebugInfo(`invalid mark: ${normalized}`)
+        updateInput({ type: 'replace', value: normalized })
+        return
+      }
+
       setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized}`)
       updateInput({ type: 'replace', value: normalized })
     },
