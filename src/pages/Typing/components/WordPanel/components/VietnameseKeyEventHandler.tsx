@@ -1,7 +1,7 @@
 import type { WordUpdateAction } from './InputHandler'
 import { TypingContext } from '@/pages/Typing/store'
 import { processInputByMethod } from 'gotiengviet'
-import { useCallback, useContext, useEffect, useRef } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 const TELEX_RULE = {
   toneRules: {
@@ -40,10 +40,11 @@ export default function VietnameseKeyEventHandler({
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const { state } = useContext(TypingContext)!
   const rawBufferRef = useRef('')
+  const [debugInfo, setDebugInfo] = useState('')
 
-  // 输入错误重置时，清空原始按键缓冲区
   useEffect(() => {
     rawBufferRef.current = ''
+    setDebugInfo('')
   }, [viResetSignal])
 
   const onKeydown = useCallback(
@@ -55,6 +56,7 @@ export default function VietnameseKeyEventHandler({
         e.preventDefault()
         rawBufferRef.current = rawBufferRef.current.slice(0, -1)
         const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
+        setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${converted}`)
         updateInput({ type: 'replace', value: converted })
         return
       }
@@ -62,6 +64,7 @@ export default function VietnameseKeyEventHandler({
       if (e.key === ' ') {
         e.preventDefault()
         rawBufferRef.current += ' '
+        setDebugInfo(`raw: ${rawBufferRef.current} | space`)
         updateInput({ type: 'add', value: ' ', event: e })
         return
       }
@@ -71,7 +74,7 @@ export default function VietnameseKeyEventHandler({
       e.preventDefault()
       rawBufferRef.current += e.key
       const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-      alert(`raw: ${rawBufferRef.current}\nconverted: ${converted}`)
+      setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${converted}`)
       updateInput({ type: 'replace', value: converted })
     },
     [state.isTyping, updateInput],
@@ -80,6 +83,7 @@ export default function VietnameseKeyEventHandler({
   useEffect(() => {
     if (!state.isTyping) {
       rawBufferRef.current = ''
+      setDebugInfo('')
       return
     }
 
@@ -87,5 +91,25 @@ export default function VietnameseKeyEventHandler({
     return () => window.removeEventListener('keydown', onKeydown)
   }, [onKeydown, state.isTyping])
 
-  return <></>
+  return (
+    <>
+      <div
+        style={{
+          position: 'fixed',
+          top: '10px',
+          left: '10px',
+          background: 'rgba(0,0,0,0.8)',
+          color: '#0f0',
+          padding: '8px 12px',
+          fontSize: '14px',
+          fontFamily: 'monospace',
+          zIndex: 9999,
+          borderRadius: '4px',
+          pointerEvents: 'none',
+        }}
+      >
+        {debugInfo || 'waiting...'}
+      </div>
+    </>
+  )
 }
