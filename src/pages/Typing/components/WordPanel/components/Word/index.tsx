@@ -34,12 +34,12 @@ const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 // 去掉所有组合符号（变音 + 声调），只留基础字母
 const getBase = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC')
 
-// 取出所有组合符号（变音 + 声调）
-const getMark = (s: string): string => {
-  const nfd = s.normalize('NFD')
-  const marks = nfd.match(/[\u0300-\u036f]/g)
-  return marks ? marks.join('') : ''
-}
+// 只去掉声调符号，保留变音字母（ă â ê ô ơ ư đ）
+const stripToneOnly = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300\u0301\u0303\u0309\u0323]/g, '')
+    .normalize('NFC')
 
 export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
@@ -98,7 +98,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
               const lastCorrect = wordState.displayWord[inputLength - 1]
 
               if (lastInput != undefined && lastCorrect != undefined) {
-                if (getBase(lastInput) === getBase(lastCorrect) && getMark(lastInput) !== getMark(lastCorrect)) {
+                if (getBase(lastInput) === getBase(lastCorrect) && lastInput !== lastCorrect) {
                   playBeepSound()
                   setWordState((state) => {
                     state.letterStates[inputLength - 1] = 'wrong'
@@ -233,14 +233,17 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
       if (!isEqual) {
         const inputBase = getBase(inputChar)
         const correctBase = getBase(correctChar)
-        const inputMark = getMark(inputChar)
-        const correctMark = getMark(correctChar)
 
         if (inputBase === correctBase) {
-          if (inputMark === '' || correctMark === '') {
-            // 一方还没加符号 → 等待
+          // 检查差的是声调还是变音
+          const inputStripped = stripToneOnly(inputChar)
+          const correctStripped = stripToneOnly(correctChar)
+
+          if (inputStripped === correctStripped) {
+            // 只差声调 → 等待
             isPending = true
           }
+          // 差的是变音 → 不等待，继续走判错逻辑
         }
       }
     }
