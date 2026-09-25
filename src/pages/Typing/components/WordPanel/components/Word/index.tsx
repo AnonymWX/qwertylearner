@@ -98,7 +98,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
               const lastCorrect = wordState.displayWord[inputLength - 1]
 
               if (lastInput != undefined && lastCorrect != undefined) {
-                if (getBase(lastInput) === getBase(lastCorrect) && lastInput !== lastCorrect) {
+                if (stripToneOnly(lastInput) === stripToneOnly(lastCorrect) && lastInput !== lastCorrect) {
                   playBeepSound()
                   setWordState((state) => {
                     state.letterStates[inputLength - 1] = 'wrong'
@@ -231,20 +231,14 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
       }
 
       if (!isEqual) {
-        const inputBase = getBase(inputChar)
-        const correctBase = getBase(correctChar)
+        const inputStripped = stripToneOnly(inputChar)
+        const correctStripped = stripToneOnly(correctChar)
 
-        if (inputBase === correctBase) {
-          // 检查差的是声调还是变音
-          const inputStripped = stripToneOnly(inputChar)
-          const correctStripped = stripToneOnly(correctChar)
-
-          if (inputStripped === correctStripped) {
-            // 只差声调 → 等待
-            isPending = true
-          }
-          // 差的是变音 → 不等待，继续走判错逻辑
+        if (inputStripped === correctStripped) {
+          // 只差声调 → 等待
+          isPending = true
         }
+        // 差的是变音 → 不等待，继续走判错逻辑
       }
     }
 
