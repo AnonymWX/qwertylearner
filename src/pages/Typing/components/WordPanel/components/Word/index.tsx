@@ -188,11 +188,15 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     const inputChar = wordState.inputWord[inputLength - 1]
     const correctChar = wordState.displayWord[inputLength - 1]
 
-    // ↓↓↓ 新增的调试代码 ↓↓↓
+    // ↓↓↓ 调试弹窗 ↓↓↓
     if (inputChar === 'à' || correctChar === 'à' || inputChar === 'a' || correctChar === 'a') {
-      alert(`input: ${inputChar} (${inputChar?.charCodeAt(0)}) | correct: ${correctChar} (${correctChar?.charCodeAt(0)})`)
+      alert(
+        `inputWord: "${wordState.inputWord}" (len: ${wordState.inputWord.length})\n` +
+          `inputChar: ${inputChar} (${inputChar?.charCodeAt(0)})\n` +
+          `correctChar: ${correctChar} (${correctChar?.charCodeAt(0)})`,
+      )
     }
-    // ↑↑↑ 新增的调试代码 ↑↑↑
+    // ↑↑↑ 调试弹窗 ↑↑↑
 
     let isEqual = false
     if (inputChar != undefined && correctChar != undefined) {
