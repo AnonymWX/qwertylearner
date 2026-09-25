@@ -2,7 +2,6 @@ import type { WordUpdateAction } from './InputHandler'
 import { TypingContext } from '@/pages/Typing/store'
 import { processInputByMethod } from 'gotiengviet'
 import { useCallback, useContext, useEffect, useRef } from 'react'
-import { EXPLICIT_SPACE } from '@/constants'
 
 const TELEX_RULE = {
   toneRules: {
@@ -63,18 +62,17 @@ export default function VietnameseKeyEventHandler({
       if (e.key === ' ') {
         e.preventDefault()
         rawBufferRef.current += ' '
-        const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-        console.log('space: raw buffer:', rawBufferRef.current, 'converted:', converted)
-        updateInput({ type: 'replace', value: converted })
+        updateInput({ type: 'add', value: ' ', event: e })
         return
       }
 
       if (e.key.length !== 1) return
-        e.preventDefault()
-        rawBufferRef.current += e.key
-        const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-        updateInput({ type: 'replace', value: converted })
-      },
+
+      e.preventDefault()
+      rawBufferRef.current += e.key
+      const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
+      updateInput({ type: 'replace', value: converted })
+    },
     [state.isTyping, updateInput],
   )
 
