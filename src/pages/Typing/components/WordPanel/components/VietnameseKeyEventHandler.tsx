@@ -71,7 +71,7 @@ export default function VietnameseKeyEventHandler({
       e.preventDefault()
       rawBufferRef.current += e.key
       const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-      console.log('raw:', rawBufferRef.current, 'converted:', converted)
+      alert(`raw: ${rawBufferRef.current}\nconverted: ${converted}`)
       updateInput({ type: 'replace', value: converted })
     },
     [state.isTyping, updateInput],
