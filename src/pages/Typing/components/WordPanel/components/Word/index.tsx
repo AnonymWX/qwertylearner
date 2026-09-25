@@ -90,6 +90,28 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
           if (updateAction.value === ' ') {
             updateAction.event.preventDefault()
+
+            // 边界检查：按下空格时，检查最后一个字符是否还在“等待”状态
+            const inputLength = wordState.inputWord.length
+            if (inputLength > 0) {
+              const lastInput = wordState.inputWord[inputLength - 1]
+              const lastCorrect = wordState.displayWord[inputLength - 1]
+
+              if (lastInput != undefined && lastCorrect != undefined) {
+                if (getBase(lastInput) === getBase(lastCorrect) && getMark(lastInput) !== getMark(lastCorrect)) {
+                  playBeepSound()
+                  setWordState((state) => {
+                    state.letterStates[inputLength - 1] = 'wrong'
+                    state.hasWrong = true
+                    state.hasMadeInputWrong = true
+                    state.wrongCount += 1
+                    state.letterTimeArray = []
+                  })
+                  return
+                }
+              }
+            }
+
             setWordState((state) => {
               state.inputWord = state.inputWord + EXPLICIT_SPACE
             })
@@ -111,7 +133,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           console.warn('unknown update type', updateAction)
       }
     },
-    [wordState.hasWrong, setWordState],
+    [wordState.hasWrong, wordState.inputWord, wordState.displayWord, setWordState, playBeepSound],
   )
 
   const handleHoverWord = useCallback((checked: boolean) => {
