@@ -31,6 +31,24 @@ const TELEX_RULE = {
   },
 }
 
+// 变音字母 → 必须包含的触发键
+const MARK_TRIGGER_MAP: Record<string, string> = {
+  'ơ': 'w',
+  'Ơ': 'w',
+  'ư': 'w',
+  'Ư': 'w',
+  'ă': 'w',
+  'Ă': 'w',
+  'â': 'a',
+  'Â': 'a',
+  'ê': 'e',
+  'Ê': 'e',
+  'ô': 'o',
+  'Ô': 'o',
+  'đ': 'd',
+  'Đ': 'd',
+}
+
 export default function VietnameseKeyEventHandler({
   updateInput,
   viResetSignal,
@@ -79,6 +97,24 @@ export default function VietnameseKeyEventHandler({
       rawBufferRef.current += e.key
       const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
       const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
+
+      // 校验：转换结果里的每个变音字母，原始输入里必须有对应的触发键
+      const rawLower = rawBufferRef.current.toLowerCase()
+      let hasInvalidMark = false
+
+      for (const [markChar, triggerKey] of Object.entries(MARK_TRIGGER_MAP)) {
+        if (normalized.includes(markChar) && !rawLower.includes(triggerKey)) {
+          hasInvalidMark = true
+          break
+        }
+      }
+
+      if (hasInvalidMark) {
+        setDebugInfo(`invalid mark: ${normalized}`)
+        updateInput({ type: 'replace', value: normalized })
+        return
+      }
+
       setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized}`)
       updateInput({ type: 'replace', value: normalized })
     },
