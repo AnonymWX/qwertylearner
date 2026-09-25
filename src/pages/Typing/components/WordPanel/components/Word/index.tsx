@@ -31,6 +31,9 @@ import { useImmer } from 'use-immer'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
+// 去掉声调，只留基础字母
+const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC')
+
 export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
   const { state, dispatch } = useContext(TypingContext)!
@@ -188,19 +191,25 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     const inputChar = wordState.inputWord[inputLength - 1]
     const correctChar = wordState.displayWord[inputLength - 1]
 
-    // ↓↓↓ 调试弹窗 ↓↓↓
-    if (inputChar === 'à' || correctChar === 'à' || inputChar === 'a' || correctChar === 'a') {
-      alert(
-        `inputWord: "${wordState.inputWord}" (len: ${wordState.inputWord.length})\n` +
-          `inputChar: ${inputChar} (${inputChar?.charCodeAt(0)})\n` +
-          `correctChar: ${correctChar} (${correctChar?.charCodeAt(0)})`,
-      )
-    }
-    // ↑↑↑ 调试弹窗 ↑↑↑
-
     let isEqual = false
+    let isPendingTone = false
+
     if (inputChar != undefined && correctChar != undefined) {
-      isEqual = isIgnoreCase ? inputChar.toLowerCase() === correctChar.toLowerCase() : inputChar === correctChar
+      if (isIgnoreCase) {
+        isEqual = inputChar.toLowerCase() === correctChar.toLowerCase()
+      } else {
+        isEqual = inputChar === correctChar
+      }
+
+      // 基础字母相同、但声调不同 → 等待声调，不判错
+      if (!isEqual && normalize(inputChar) === normalize(correctChar)) {
+        isPendingTone = true
+      }
+    }
+
+    // 等待声调时，直接返回，不更新 letterStates
+    if (isPendingTone) {
+      return
     }
 
     if (isEqual) {
