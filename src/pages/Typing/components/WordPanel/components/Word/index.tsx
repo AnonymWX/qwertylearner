@@ -93,14 +93,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         case 'replace':
           if (wordState.hasWrong) return
           setWordState((state) => {
-            const newInput = updateAction.value
-            state.inputWord = newInput
-            // 如果新输入比当前短，清除超出部分的 letterStates
-            if (newInput.length < state.letterStates.length) {
-              for (let i = newInput.length; i < state.letterStates.length; i++) {
-                state.letterStates[i] = 'normal'
-              }
-            }
+            state.inputWord = updateAction.value
           })
           break
 
