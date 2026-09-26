@@ -60,7 +60,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     // run only when word changes
     let headword = ''
     try {
-      headword = word.name.replace(new RegExp(' ', 'g'), EXPLICIT_SPACE)
+      headword = (word?.name ?? '').replace(new RegExp(' ', 'g'), EXPLICIT_SPACE)
       headword = headword.replace(new RegExp('…', 'g'), '..')
     } catch (e) {
       console.error('word.name is not a string', word)
@@ -339,7 +339,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
   return (
     <>
-      <InputHandler updateInput={updateInput} wordName={word.name} viResetSignal={viResetSignal} />
+      <InputHandler updateInput={updateInput} wordName={word?.name ?? ''} viResetSignal={viResetSignal} />
       <div
         lang={currentLanguageCategory !== 'code' ? currentLanguageCategory : 'en'}
         className="flex flex-col items-center justify-center pb-1 pt-4"
