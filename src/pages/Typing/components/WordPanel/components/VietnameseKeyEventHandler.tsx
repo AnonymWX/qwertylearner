@@ -31,7 +31,8 @@ const TELEX_RULE = {
   },
 }
 
-// 变音字母 → 必须包含的按键组合
+// ─── 规则引擎 ─────────────────────────────────────────────────────────────
+// 变音字母 → 必须包含的按键序列
 const MARK_RULES: Record<string, string[]> = {
   'ă': ['aw'],
   'â': ['aa'],
@@ -49,7 +50,12 @@ const MARK_RULES: Record<string, string[]> = {
   'Đ': ['dd', 'DD'],
 }
 
-// 校验：转换结果里的每个变音字母，原始输入里必须有对应的按键组合
+/**
+ * 规则引擎：校验转换结果里的变音字母，是否由正确的按键序列触发
+ *
+ * 例：converted 里有 'ơ'，rawBuffer 里必须有 'ow'
+ *     否则说明 gotiengviet 错误地把 'o' + 非 w 键处理成了 'ơ'
+ */
 function validateMarkSequence(rawBuffer: string, converted: string): boolean {
   const rawLower = rawBuffer.toLowerCase()
   const convertedNfc = converted.normalize('NFC')
@@ -65,6 +71,7 @@ function validateMarkSequence(rawBuffer: string, converted: string): boolean {
 
   return true
 }
+// ──────────────────────────────────────────────────────────────────────────
 
 export default function VietnameseKeyEventHandler({
   updateInput,
@@ -115,10 +122,10 @@ export default function VietnameseKeyEventHandler({
       const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
       const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
 
-      // 校验：变音字母必须由合法的按键组合触发
+      // 规则引擎校验
       if (!validateMarkSequence(rawBufferRef.current, normalized)) {
-        setDebugInfo(`invalid mark: ${normalized}`)
-        updateInput({ type: 'replace', value: normalized })
+        setDebugInfo(`REJECT: ${normalized}`)
+        updateInput({ type: 'reject' })
         return
       }
 
