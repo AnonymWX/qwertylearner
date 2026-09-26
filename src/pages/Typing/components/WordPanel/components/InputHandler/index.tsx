@@ -8,9 +8,11 @@ import { useMemo } from 'react'
 
 export default function InputHandler({
   updateInput,
+  wordName,
   viResetSignal,
 }: {
   updateInput: (updateObj: WordUpdateAction) => void
+  wordName: string
   viResetSignal?: number
 }) {
   const dictInfo = useAtomValue(currentDictInfoAtom)
@@ -26,11 +28,11 @@ export default function InputHandler({
       case 'code':
         return <TextAreaHandler updateInput={updateInput} />
       case 'vi':
-        return <VietnameseKeyEventHandler updateInput={updateInput} viResetSignal={viResetSignal} />
+        return <VietnameseKeyEventHandler updateInput={updateInput} wordName={wordName} viResetSignal={viResetSignal} />
       default:
         return <TextAreaHandler updateInput={updateInput} />
     }
-  }, [dictInfo.language, updateInput, viResetSignal])
+  }, [dictInfo.language, updateInput, wordName, viResetSignal])
 
   return <>{handler}</>
 }
