@@ -1,83 +1,104 @@
 import type { WordUpdateAction } from './InputHandler'
 import { TypingContext } from '@/pages/Typing/store'
-import { processInputByMethod } from 'gotiengviet'
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { EXPLICIT_SPACE } from '@/constants'
 
-const TELEX_RULE = {
-  toneRules: {
-    s: 1,
-    f: 2,
-    r: 3,
-    x: 4,
-    j: 5,
-    z: 0,
-  },
-  markRules: {
-    aa: 'â',
-    aw: 'ă',
-    ee: 'ê',
-    oo: 'ô',
-    ow: 'ơ',
-    uw: 'ư',
-    dd: 'đ',
-    AA: 'Â',
-    AW: 'Ă',
-    EE: 'Ê',
-    OO: 'Ô',
-    OW: 'Ơ',
-    UW: 'Ư',
-    DD: 'Đ',
-  },
-}
-
-// ─── 规则引擎 ─────────────────────────────────────────────────────────────
-// 变音字母 → 必须包含的按键序列
-const MARK_RULES: Record<string, string[]> = {
-  'ă': ['aw'],
-  'â': ['aa'],
-  'ê': ['ee'],
-  'ô': ['oo'],
-  'ơ': ['ow'],
-  'ư': ['uw'],
-  'đ': ['dd'],
-  'Ă': ['aw', 'AW'],
-  'Â': ['aa', 'AA'],
-  'Ê': ['ee', 'EE'],
-  'Ô': ['oo', 'OO'],
-  'Ơ': ['ow', 'OW'],
-  'Ư': ['uw', 'UW'],
-  'Đ': ['dd', 'DD'],
-}
-
 /**
- * 规则引擎：校验转换结果里的变音字母，是否由正确的按键序列触发
+ * 把越南语单词反向转换为 Telex 按键序列
  *
- * 例：converted 里有 'ơ'，rawBuffer 里必须有 'ow'
- *     否则说明 gotiengviet 错误地把 'o' + 非 w 键处理成了 'ơ'
+ * 例：'tạm biệt' → { keys: 'tamj bieetj', keyToCharIndex: [0,1,2,1,3,4,5,6,6,7,6] }
+ *
+ * keyToCharIndex[i] 表示第 i 个按键对应到原单词的第几个字符。
+ * 空格对应原单词里的空格索引。
  */
-function validateMarkSequence(rawBuffer: string, converted: string): boolean {
-  const rawLower = rawBuffer.toLowerCase()
-  const convertedNfc = converted.normalize('NFC')
+function toTelexKeys(word: string): { keys: string; keyToCharIndex: number[] } {
+  const keys: string[] = []
+  const keyToCharIndex: number[] = []
+  let toneKey: string | null = null
+  let toneCharIndex = -1
 
-  for (const [markChar, validTriggers] of Object.entries(MARK_RULES)) {
-    if (convertedNfc.includes(markChar)) {
-      const hasValidTrigger = validTriggers.some((trigger) => rawLower.includes(trigger.toLowerCase()))
-      if (!hasValidTrigger) {
-        return false
+  const chars = Array.from(word)
+
+  for (let i = 0; i < chars.length; i++) {
+    const char = chars[i]
+
+    if (char === ' ') {
+      // 音节分隔：先把当前音节的声调键追加进去
+      if (toneKey) {
+        keys.push(toneKey)
+        keyToCharIndex.push(toneCharIndex)
+        toneKey = null
+        toneCharIndex = -1
+      }
+      keys.push(' ')
+      keyToCharIndex.push(i)
+      continue
+    }
+
+    const nfd = char.normalize('NFD')
+    const base = nfd[0]
+    const marks = nfd.slice(1)
+    const lowerChar = char.toLowerCase()
+
+    const hasCircumflex = marks.includes('\u0302')
+    const hasBreve = marks.includes('\u0306')
+    const hasHorn = marks.includes('\u031B')
+
+    let baseKeys: string
+    if (lowerChar === 'đ') {
+      baseKeys = char === 'Đ' ? 'DD' : 'dd'
+    } else if (hasBreve) {
+      baseKeys = char === 'Ă' ? 'AW' : 'aw'
+    } else if (hasHorn) {
+      if (base.toLowerCase() === 'o') baseKeys = char === 'Ơ' ? 'OW' : 'ow'
+      else baseKeys = char === 'Ư' ? 'UW' : 'uw'
+    } else if (hasCircumflex) {
+      const b = base.toLowerCase()
+      if (b === 'a') baseKeys = char === 'Â' ? 'AA' : 'aa'
+      else if (b === 'e') baseKeys = char === 'Ê' ? 'EE' : 'ee'
+      else if (b === 'o') baseKeys = char === 'Ô' ? 'OO' : 'oo'
+      else baseKeys = char
+    } else {
+      baseKeys = char
+    }
+
+    for (const k of baseKeys) {
+      keys.push(k)
+      keyToCharIndex.push(i)
+    }
+
+    const toneMap: Record<string, string> = {
+      '\u0301': 's', // 锐声
+      '\u0300': 'f', // 玄声
+      '\u0309': 'r', // 问声
+      '\u0303': 'x', // 跌声
+      '\u0323': 'j', // 重声
+    }
+
+    for (const m of marks) {
+      if (toneMap[m]) {
+        toneKey = toneMap[m]
+        toneCharIndex = i
       }
     }
   }
 
-  return true
+  // 末尾还有未追加的声调键
+  if (toneKey) {
+    keys.push(toneKey)
+    keyToCharIndex.push(toneCharIndex)
+  }
+
+  return { keys: keys.join(''), keyToCharIndex }
 }
-// ──────────────────────────────────────────────────────────────────────────
 
 export default function VietnameseKeyEventHandler({
   updateInput,
+  wordName,
   viResetSignal,
 }: {
   updateInput: (updateObj: WordUpdateAction) => void
+  wordName: string
   viResetSignal?: number
 }) {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -85,10 +106,30 @@ export default function VietnameseKeyEventHandler({
   const rawBufferRef = useRef('')
   const [debugInfo, setDebugInfo] = useState('')
 
+  const telexInfo = useMemo(() => toTelexKeys(wordName), [wordName])
+
   useEffect(() => {
     rawBufferRef.current = ''
     setDebugInfo('')
-  }, [viResetSignal])
+  }, [viResetSignal, wordName])
+
+  const computeDisplaySoFar = useCallback(
+    (raw: string) => {
+      let maxCharIndex = -1
+      for (let i = 0; i < raw.length; i++) {
+        const ci = telexInfo.keyToCharIndex[i]
+        if (ci > maxCharIndex) maxCharIndex = ci
+      }
+
+      let display = ''
+      for (let i = 0; i <= maxCharIndex; i++) {
+        const c = wordName[i]
+        display += c === ' ' ? EXPLICIT_SPACE : c
+      }
+      return display
+    },
+    [telexInfo, wordName],
+  )
 
   const onKeydown = useCallback(
     (e: KeyboardEvent) => {
@@ -98,41 +139,32 @@ export default function VietnameseKeyEventHandler({
       if (e.key === 'Backspace') {
         e.preventDefault()
         rawBufferRef.current = rawBufferRef.current.slice(0, -1)
-        const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-        const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
-        setDebugInfo(`backspace → ${normalized}`)
-        updateInput({ type: 'replace', value: normalized })
-        return
-      }
-
-      if (e.key === ' ') {
-        e.preventDefault()
-        rawBufferRef.current += ' '
-        const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-        const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
-        setDebugInfo(`space → ${normalized}`)
-        updateInput({ type: 'replace', value: normalized })
+        const display = computeDisplaySoFar(rawBufferRef.current)
+        setDebugInfo(`backspace → ${display}`)
+        updateInput({ type: 'replace', value: display })
         return
       }
 
       if (e.key.length !== 1) return
 
       e.preventDefault()
-      rawBufferRef.current += e.key
-      const converted = processInputByMethod(rawBufferRef.current, TELEX_RULE)
-      const normalized = converted.replace(/ /g, EXPLICIT_SPACE).normalize('NFC')
 
-      // 规则引擎校验
-      if (!validateMarkSequence(rawBufferRef.current, normalized)) {
-        setDebugInfo(`REJECT: ${normalized}`)
+      const newRaw = rawBufferRef.current + e.key
+      const expected = telexInfo.keys
+
+      // 前缀比对：用户按下的字符序列，必须是 expected 的前缀
+      if (!expected.toLowerCase().startsWith(newRaw.toLowerCase())) {
+        setDebugInfo(`REJECT: "${newRaw}" vs "${expected}"`)
         updateInput({ type: 'reject' })
         return
       }
 
-      setDebugInfo(`raw: ${rawBufferRef.current} | converted: ${normalized}`)
-      updateInput({ type: 'replace', value: normalized })
+      rawBufferRef.current = newRaw
+      const display = computeDisplaySoFar(newRaw)
+      setDebugInfo(`raw: "${newRaw}" | done: "${display}"`)
+      updateInput({ type: 'replace', value: display })
     },
-    [state.isTyping, updateInput],
+    [state.isTyping, updateInput, telexInfo, computeDisplaySoFar],
   )
 
   useEffect(() => {
@@ -156,14 +188,16 @@ export default function VietnameseKeyEventHandler({
           background: 'rgba(0,0,0,0.8)',
           color: '#0f0',
           padding: '8px 12px',
-          fontSize: '14px',
+          fontSize: '12px',
           fontFamily: 'monospace',
           zIndex: 9999,
           borderRadius: '4px',
           pointerEvents: 'none',
+          maxWidth: '90vw',
+          wordBreak: 'break-all',
         }}
       >
-        {debugInfo || 'waiting...'}
+        {debugInfo || `keys: "${telexInfo.keys}"`}
       </div>
     </>
   )
