@@ -31,6 +31,9 @@ import { useImmer } from 'use-immer'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
+// 去掉所有组合符号（变音 + 声调），只留基础字母
+const getBase = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC')
+
 export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
   const { state, dispatch } = useContext(TypingContext)!
@@ -186,32 +189,46 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
   useEffect(() => {
     const inputLength = wordState.inputWord.length
-    /**
-     * TODO: 当用户输入错误时，会报错
-     * Cannot update a component (`App`) while rendering a different component (`WordComponent`). To locate the bad setState() call inside `WordComponent`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render
-     * 目前不影响生产环境，猜测是因为开发环境下 react 会两次调用 useEffect 从而展示了这个 warning
-     * 但这终究是一个 bug，需要修复
-     */
     if (wordState.hasWrong || inputLength === 0 || wordState.displayWord.length === 0) {
       return
     }
 
     const inputChar = wordState.inputWord[inputLength - 1]
     const correctChar = wordState.displayWord[inputLength - 1]
+
     let isEqual = false
+    let isPending = false
+
     if (inputChar != undefined && correctChar != undefined) {
-      isEqual = isIgnoreCase ? inputChar.toLowerCase() === correctChar.toLowerCase() : inputChar === correctChar
+      if (isIgnoreCase) {
+        isEqual = inputChar.toLowerCase() === correctChar.toLowerCase()
+      } else {
+        isEqual = inputChar === correctChar
+      }
+
+      if (!isEqual) {
+        const inputBase = getBase(inputChar)
+        const correctBase = getBase(correctChar)
+
+        if (inputBase === correctBase) {
+          // base 相同（差的是变音或声调）→ 等待
+          isPending = true
+        }
+      }
+    }
+
+    // 等待时，直接返回，不更新 letterStates
+    if (isPending) {
+      return
     }
 
     if (isEqual) {
-      // 输入正确时
       setWordState((state) => {
         state.letterTimeArray.push(Date.now())
         state.correctCount += 1
       })
 
       if (inputLength >= wordState.displayWord.length) {
-        // 完成输入时
         setWordState((state) => {
           state.letterStates[inputLength - 1] = 'correct'
           state.isFinished = true
@@ -227,7 +244,6 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
       dispatch({ type: TypingStateActionType.REPORT_CORRECT_WORD })
     } else {
-      // 出错时
       playBeepSound()
       setWordState((state) => {
         state.letterStates[inputLength - 1] = 'wrong'
