@@ -31,9 +31,6 @@ import { useImmer } from 'use-immer'
 
 const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 
-// 去掉所有组合符号（变音 + 声调），只留基础字母
-const getBase = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC')
-
 export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
   const { state, dispatch } = useContext(TypingContext)!
@@ -83,28 +80,6 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
           if (updateAction.value === ' ') {
             updateAction.event.preventDefault()
-
-            // 边界检查：按下空格时，检查最后一个字符是否还在“等待”状态
-            const inputLength = wordState.inputWord.length
-            if (inputLength > 0) {
-              const lastInput = wordState.inputWord[inputLength - 1]
-              const lastCorrect = wordState.displayWord[inputLength - 1]
-
-              if (lastInput != undefined && lastCorrect != undefined) {
-                if (getBase(lastInput) === getBase(lastCorrect) && lastInput !== lastCorrect) {
-                  playBeepSound()
-                  setWordState((state) => {
-                    state.letterStates[inputLength - 1] = 'wrong'
-                    state.hasWrong = true
-                    state.hasMadeInputWrong = true
-                    state.wrongCount += 1
-                    state.letterTimeArray = []
-                  })
-                  return
-                }
-              }
-            }
-
             setWordState((state) => {
               state.inputWord = state.inputWord + EXPLICIT_SPACE
             })
@@ -118,7 +93,14 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         case 'replace':
           if (wordState.hasWrong) return
           setWordState((state) => {
-            state.inputWord = updateAction.value
+            const newInput = updateAction.value
+            state.inputWord = newInput
+            // 如果新输入比当前短，清除超出部分的 letterStates
+            if (newInput.length < state.letterStates.length) {
+              for (let i = newInput.length; i < state.letterStates.length; i++) {
+                state.letterStates[i] = 'normal'
+              }
+            }
           })
           break
 
@@ -137,7 +119,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           console.warn('unknown update type', updateAction)
       }
     },
-    [wordState.hasWrong, wordState.inputWord, wordState.displayWord, setWordState, playBeepSound],
+    [wordState.hasWrong, setWordState, playBeepSound],
   )
 
   const handleHoverWord = useCallback((checked: boolean) => {
@@ -223,31 +205,9 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
     const inputChar = wordState.inputWord[inputLength - 1]
     const correctChar = wordState.displayWord[inputLength - 1]
-
     let isEqual = false
-    let isPending = false
-
     if (inputChar != undefined && correctChar != undefined) {
-      if (isIgnoreCase) {
-        isEqual = inputChar.toLowerCase() === correctChar.toLowerCase()
-      } else {
-        isEqual = inputChar === correctChar
-      }
-
-      if (!isEqual) {
-        const inputBase = getBase(inputChar)
-        const correctBase = getBase(correctChar)
-
-        if (inputBase === correctBase) {
-          // base 相同（差的是变音或声调）→ 等待
-          isPending = true
-        }
-      }
-    }
-
-    // 等待时，直接返回，不更新 letterStates
-    if (isPending) {
-      return
+      isEqual = isIgnoreCase ? inputChar.toLowerCase() === correctChar.toLowerCase() : inputChar === correctChar
     }
 
     if (isEqual) {
@@ -349,7 +309,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
   return (
     <>
-      <InputHandler updateInput={updateInput} viResetSignal={viResetSignal} />
+      <InputHandler updateInput={updateInput} wordName={word.name} viResetSignal={viResetSignal} />
       <div
         lang={currentLanguageCategory !== 'code' ? currentLanguageCategory : 'en'}
         className="flex flex-col items-center justify-center pb-1 pt-4"
