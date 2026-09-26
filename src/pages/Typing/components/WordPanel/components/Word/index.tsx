@@ -34,13 +34,6 @@ const vowelLetters = ['A', 'E', 'I', 'O', 'U']
 // 去掉所有组合符号（变音 + 声调），只留基础字母
 const getBase = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC')
 
-// 只去掉声调符号，保留变音字母（ă â ê ô ơ ư đ）
-const stripToneOnly = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[\u0300\u0301\u0303\u0309\u0323]/g, '')
-    .normalize('NFC')
-
 export default function WordComponent({ word, onFinish }: { word: Word; onFinish: () => void }) {
   // eslint-disable-next-line  @typescript-eslint/no-non-null-assertion
   const { state, dispatch } = useContext(TypingContext)!
@@ -98,7 +91,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
               const lastCorrect = wordState.displayWord[inputLength - 1]
 
               if (lastInput != undefined && lastCorrect != undefined) {
-                if (stripToneOnly(lastInput) === stripToneOnly(lastCorrect) && lastInput !== lastCorrect) {
+                if (getBase(lastInput) === getBase(lastCorrect) && lastInput !== lastCorrect) {
                   playBeepSound()
                   setWordState((state) => {
                     state.letterStates[inputLength - 1] = 'wrong'
@@ -231,14 +224,13 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
       }
 
       if (!isEqual) {
-        const inputStripped = stripToneOnly(inputChar)
-        const correctStripped = stripToneOnly(correctChar)
+        const inputBase = getBase(inputChar)
+        const correctBase = getBase(correctChar)
 
-        if (inputStripped === correctStripped) {
-          // 只差声调 → 等待
+        if (inputBase === correctBase) {
+          // base 相同（差的是变音或声调）→ 等待
           isPending = true
         }
-        // 差的是变音 → 不等待，继续走判错逻辑
       }
     }
 
