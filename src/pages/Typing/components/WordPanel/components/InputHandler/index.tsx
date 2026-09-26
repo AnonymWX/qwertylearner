@@ -35,7 +35,7 @@ export default function InputHandler({
   return <>{handler}</>
 }
 
-export type WordUpdateAction = WordAddAction | WordDeleteAction | WordCompositionAction | WordReplaceAction
+export type WordUpdateAction = WordAddAction | WordDeleteAction | WordCompositionAction | WordReplaceAction | WordRejectAction
 
 export type WordAddAction = {
   type: 'add'
@@ -48,12 +48,16 @@ export type WordDeleteAction = {
   length: number
 }
 
-// composition api is not ready yet
 export type WordCompositionAction = {
   type: 'composition'
   value: string
 }
+
 export type WordReplaceAction = {
   type: 'replace'
   value: string
+}
+
+export type WordRejectAction = {
+  type: 'reject'
 }
