@@ -122,6 +122,17 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
           })
           break
 
+        case 'reject':
+          if (wordState.hasWrong) return
+          playBeepSound()
+          setWordState((state) => {
+            state.hasWrong = true
+            state.hasMadeInputWrong = true
+            state.wrongCount += 1
+            state.letterTimeArray = []
+          })
+          break
+
         default:
           console.warn('unknown update type', updateAction)
       }
