@@ -9,8 +9,8 @@ import { EXPLICIT_SPACE } from '@/constants'
 
 type CharInfo = {
   charIndex: number
-  stages: string[] // 每个阶段对应的显示字符
-  keyPerStage: string[] // 每个阶段对应的按键
+  stages: string[]
+  keyPerStage: string[]
 }
 
 type TelexBuildResult = {
@@ -29,7 +29,6 @@ function buildTelexKeys(word: string): TelexBuildResult {
 
   let i = 0
   while (i < chars.length) {
-    // 空格
     if (chars[i] === ' ') {
       allKeys.push(' ')
       keyIndexToCharStage.push({ charIndex: i, stage: 0 })
@@ -38,7 +37,6 @@ function buildTelexKeys(word: string): TelexBuildResult {
       continue
     }
 
-    // 找到音节结尾
     let end = i
     while (end < chars.length && chars[end] !== ' ') end++
 
@@ -56,7 +54,6 @@ function buildTelexKeys(word: string): TelexBuildResult {
       const hasHorn = marks.includes('\u031B')
       const isD = lower === 'đ'
 
-      // 基础键 / 变音键
       let baseKeys: string
       if (isD) {
         baseKeys = c === 'Đ' ? 'DD' : 'dd'
@@ -75,7 +72,6 @@ function buildTelexKeys(word: string): TelexBuildResult {
         baseKeys = base
       }
 
-      // 声调键
       let toneKey: string | null = null
       for (const m of marks) {
         if (m === '\u0301') toneKey = 's'
@@ -85,7 +81,6 @@ function buildTelexKeys(word: string): TelexBuildResult {
         else if (m === '\u0323') toneKey = 'j'
       }
 
-      // 阶段
       const stages: string[] = []
       const keyPerStage: string[] = []
 
@@ -93,24 +88,23 @@ function buildTelexKeys(word: string): TelexBuildResult {
         stages.push(base)
         keyPerStage.push(baseKeys)
       } else {
-        stages.push(base) // 阶段 0：基础字母
+        stages.push(base)
         keyPerStage.push(baseKeys[0])
         const withMark = nfd
           .filter((m) => !TONE_MARKS.includes(m))
           .join('')
           .normalize('NFC')
-        stages.push(withMark) // 阶段 1：带变音
+        stages.push(withMark)
         keyPerStage.push(baseKeys[1])
       }
 
       if (toneKey) {
-        stages.push(c) // 最后阶段：完整字符
+        stages.push(c)
         keyPerStage.push(toneKey)
       }
 
       charInfos.set(j, { charIndex: j, stages, keyPerStage })
 
-      // 加入基础键和变音键（声调键延迟到音节末尾）
       const basicStageCount = toneKey ? stages.length - 1 : stages.length
       for (let s = 0; s < basicStageCount; s++) {
         allKeys.push(keyPerStage[s])
@@ -122,7 +116,6 @@ function buildTelexKeys(word: string): TelexBuildResult {
       }
     }
 
-    // 音节末尾追加声调键
     if (pendingTone) {
       allKeys.push(pendingTone.key)
       keyIndexToCharStage.push({ charIndex: pendingTone.charIndex, stage: pendingTone.stage })
@@ -214,7 +207,7 @@ export default function VietnameseKeyEventHandler({
       // 前缀比对（忽略大小写）
       if (!expected.toLowerCase().startsWith(newRaw.toLowerCase())) {
         setDebugInfo(`REJECT: "${newRaw}" not prefix of "${expected}"`)
-        rawBufferRef.current = '' // 重置原始缓冲，让下一次输入从头开始
+        rawBufferRef.current = ''
         updateInput({ type: 'reject' })
         return
       }
@@ -222,14 +215,6 @@ export default function VietnameseKeyEventHandler({
       rawBufferRef.current = newRaw
       const display = computeDisplay(newRaw, wordName, telexBuild.keyIndexToCharStage, telexBuild.charInfos)
       setDebugInfo(`raw: "${newRaw}" | done: "${display}"`)
-
-      // 如果已经输入完整，直接完成
-      if (newRaw.length >= expected.length) {
-        updateInput({ type: 'replace', value: display })
-        // 触发完成：Qwerty Learner 的 useEffect 会在 inputWord 变化后检查
-        return
-      }
-
       updateInput({ type: 'replace', value: display })
     },
     [state.isTyping, updateInput, wordName, telexBuild],
