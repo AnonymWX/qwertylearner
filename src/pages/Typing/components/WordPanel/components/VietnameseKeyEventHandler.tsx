@@ -6,10 +6,8 @@ import { EXPLICIT_SPACE } from '@/constants'
 /**
  * 把越南语单词反向转换为 Telex 按键序列
  *
- * 例：'tạm biệt' → { keys: 'tamj bieetj', keyToCharIndex: [0,1,2,1,3,4,5,6,6,7,6] }
- *
- * keyToCharIndex[i] 表示第 i 个按键对应到原单词的第几个字符。
- * 空格对应原单词里的空格索引。
+ * 规范：声调键统一放在音节末尾。
+ * 例：'tạm biệt' → { keys: 'tamj bieetj', keyToCharIndex: [...] }
  */
 function toTelexKeys(word: string): { keys: string; keyToCharIndex: number[] } {
   const keys: string[] = []
@@ -17,19 +15,22 @@ function toTelexKeys(word: string): { keys: string; keyToCharIndex: number[] } {
   let toneKey: string | null = null
   let toneCharIndex = -1
 
+  const flushTone = () => {
+    if (toneKey) {
+      keys.push(toneKey)
+      keyToCharIndex.push(toneCharIndex)
+      toneKey = null
+      toneCharIndex = -1
+    }
+  }
+
   const chars = Array.from(word)
 
   for (let i = 0; i < chars.length; i++) {
     const char = chars[i]
 
     if (char === ' ') {
-      // 音节分隔：先把当前音节的声调键追加进去
-      if (toneKey) {
-        keys.push(toneKey)
-        keyToCharIndex.push(toneCharIndex)
-        toneKey = null
-        toneCharIndex = -1
-      }
+      flushTone()
       keys.push(' ')
       keyToCharIndex.push(i)
       continue
@@ -45,21 +46,29 @@ function toTelexKeys(word: string): { keys: string; keyToCharIndex: number[] } {
     const hasHorn = marks.includes('\u031B')
 
     let baseKeys: string
+
     if (lowerChar === 'đ') {
       baseKeys = char === 'Đ' ? 'DD' : 'dd'
     } else if (hasBreve) {
-      baseKeys = char === 'Ă' ? 'AW' : 'aw'
+      // ă → aw
+      baseKeys = base === 'A' ? 'AW' : 'aw'
     } else if (hasHorn) {
-      if (base.toLowerCase() === 'o') baseKeys = char === 'Ơ' ? 'OW' : 'ow'
-      else baseKeys = char === 'Ư' ? 'UW' : 'uw'
+      // ơ → ow, ư → uw
+      if (base.toLowerCase() === 'o') {
+        baseKeys = base === 'O' ? 'OW' : 'ow'
+      } else {
+        baseKeys = base === 'U' ? 'UW' : 'uw'
+      }
     } else if (hasCircumflex) {
+      // â → aa, ê → ee, ô → oo
       const b = base.toLowerCase()
-      if (b === 'a') baseKeys = char === 'Â' ? 'AA' : 'aa'
-      else if (b === 'e') baseKeys = char === 'Ê' ? 'EE' : 'ee'
-      else if (b === 'o') baseKeys = char === 'Ô' ? 'OO' : 'oo'
-      else baseKeys = char
+      if (b === 'a') baseKeys = base === 'A' ? 'AA' : 'aa'
+      else if (b === 'e') baseKeys = base === 'E' ? 'EE' : 'ee'
+      else if (b === 'o') baseKeys = base === 'O' ? 'OO' : 'oo'
+      else baseKeys = base
     } else {
-      baseKeys = char
+      // ★ 修复：没有变音时，用 base（基础字母），不是 char
+      baseKeys = base
     }
 
     for (const k of baseKeys) {
@@ -83,11 +92,7 @@ function toTelexKeys(word: string): { keys: string; keyToCharIndex: number[] } {
     }
   }
 
-  // 末尾还有未追加的声调键
-  if (toneKey) {
-    keys.push(toneKey)
-    keyToCharIndex.push(toneCharIndex)
-  }
+  flushTone()
 
   return { keys: keys.join(''), keyToCharIndex }
 }
@@ -140,7 +145,7 @@ export default function VietnameseKeyEventHandler({
         e.preventDefault()
         rawBufferRef.current = rawBufferRef.current.slice(0, -1)
         const display = computeDisplaySoFar(rawBufferRef.current)
-        setDebugInfo(`backspace → ${display}`)
+        setDebugInfo(`backspace → "${display}"`)
         updateInput({ type: 'replace', value: display })
         return
       }
@@ -152,7 +157,7 @@ export default function VietnameseKeyEventHandler({
       const newRaw = rawBufferRef.current + e.key
       const expected = telexInfo.keys
 
-      // 前缀比对：用户按下的字符序列，必须是 expected 的前缀
+      // 前缀比对
       if (!expected.toLowerCase().startsWith(newRaw.toLowerCase())) {
         setDebugInfo(`REJECT: "${newRaw}" vs "${expected}"`)
         updateInput({ type: 'reject' })
