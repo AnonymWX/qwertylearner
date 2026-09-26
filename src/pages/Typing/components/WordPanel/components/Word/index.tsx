@@ -56,14 +56,11 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   const [viResetSignal, setViResetSignal] = useState(0)
   const wordPronunciationIconRef = useRef<WordPronunciationIconRef>(null)
 
-  // ★ 提前取出 wordName，确保它是 string
-  const wordName = word?.name ?? ''
-
   useEffect(() => {
     // run only when word changes
     let headword = ''
     try {
-      headword = wordName.replace(new RegExp(' ', 'g'), EXPLICIT_SPACE)
+      headword = word.name.replace(new RegExp(' ', 'g'), EXPLICIT_SPACE)
       headword = headword.replace(new RegExp('…', 'g'), '..')
     } catch (e) {
       console.error('word.name is not a string', word)
@@ -76,7 +73,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
     newWordState.startTime = getUtcStringForMixpanel()
     newWordState.randomLetterVisible = headword.split('').map(() => Math.random() > 0.4)
     setWordState(newWordState)
-  }, [word, wordName, setWordState])
+  }, [word, setWordState])
 
   const updateInput = useCallback(
     (updateAction: WordUpdateAction) => {
@@ -214,13 +211,11 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         const correctBase = getBase(correctChar)
 
         if (inputBase === correctBase) {
-          // base 相同（差的是变音或声调）→ 等待
           isPending = true
         }
       }
     }
 
-    // 等待时，直接返回，不更新 letterStates
     if (isPending) {
       return
     }
@@ -232,30 +227,12 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
       })
 
       if (inputLength >= wordState.displayWord.length) {
-        // ★ 长度够了，但必须确认所有字符都完全匹配，才能判定完成
-        let allMatch = true
-        for (let i = 0; i < wordState.displayWord.length; i++) {
-          const ic = wordState.inputWord[i]
-          const cc = wordState.displayWord[i]
-          if (ic === undefined || cc === undefined || ic !== cc) {
-            allMatch = false
-            break
-          }
-        }
-
-        if (allMatch) {
-          setWordState((state) => {
-            state.letterStates = new Array(state.displayWord.length).fill('correct')
-            state.isFinished = true
-            state.endTime = getUtcStringForMixpanel()
-          })
-          playHintSound()
-        } else {
-          setWordState((state) => {
-            state.letterStates[inputLength - 1] = 'correct'
-          })
-          playKeySound()
-        }
+        setWordState((state) => {
+          state.letterStates[inputLength - 1] = 'correct'
+          state.isFinished = true
+          state.endTime = getUtcStringForMixpanel()
+        })
+        playHintSound()
       } else {
         setWordState((state) => {
           state.letterStates[inputLength - 1] = 'correct'
@@ -308,11 +285,11 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
   }, [wordState.hasWrong, setWordState])
 
   useEffect(() => {
-    if (wordState.isFinished && wordName) {
+    if (wordState.isFinished) {
       dispatch({ type: TypingStateActionType.SET_IS_SAVING_RECORD, payload: true })
 
       wordLogUploader({
-        headword: wordName,
+        headword: word.name,
         timeStart: wordState.startTime,
         timeEnd: wordState.endTime,
         countInput: wordState.correctCount + wordState.wrongCount,
@@ -320,7 +297,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
         countTypo: wordState.wrongCount,
       })
       saveWordRecord({
-        word: wordName,
+        word: word.name,
         wrongCount: wordState.wrongCount,
         letterTimeArray: wordState.letterTimeArray,
         letterMistake: wordState.letterMistake,
@@ -339,7 +316,7 @@ export default function WordComponent({ word, onFinish }: { word: Word; onFinish
 
   return (
     <>
-      <InputHandler updateInput={updateInput} wordName={wordName} viResetSignal={viResetSignal} />
+      <InputHandler updateInput={updateInput} wordName={word.name} viResetSignal={viResetSignal} />
       <div
         lang={currentLanguageCategory !== 'code' ? currentLanguageCategory : 'en'}
         className="flex flex-col items-center justify-center pb-1 pt-4"
